@@ -6,6 +6,8 @@ import sys
 import time
 
 atable, ltable, dtable = {}, {}, {} #initialize global tables
+address_size = 4
+jump_size = 7
 
 try:
     filename = sys.argv[1]
@@ -59,25 +61,26 @@ def make_ltable(a):
         x += 1
         if is_l_command(i): #find a label, add line number to it
             x -= 1
-            ltable[i[0:-1]] = to_b(x, 7) #use binary helper with 0's padding
+            ltable[i[0:-1]] = to_b(x, jump_size) #use binary helper with 0's padding
 
 def make_dtable(a):
     space = 0
     for i in a: # add to symbols table
         if is_d_command(i): 
+            var = i.split(' ')[0][1:]
             if len(i.split(' ')) < 2:
-                dtable[i] = [to_b(space, 4), to_b(0)]
-                space += 1
+                print "Error: missing value for variable '" + var + "'!"
+                sys.exit(8)
             else:
                 val = i.split(' ')[1] 
-                var = i.split(' ')[0][1:]
                 if var in dtable.keys():
-                    continue # redefined variable
+                    print "Error: redefinition of variable '" + var + "'!"
+                    sys.exit(7)
                 elif try_parse_int(val) is not None:
-                    dtable[var] = [to_b(space, 4), to_b(int(val))]      
+                    dtable[var] = [to_b(space, address_size), to_b(int(val))]      
                     space += 1
                 else:
-                    dtable[var] = [to_b(space, 4),  to_b(0)] # unable to parse
+                    dtable[var] = [to_b(space, address_size),  to_b(0)] # unable to parse
                     space += 1
         if space > space_table["data"]:
             print "Error: out of data memory!"           	
