@@ -6,8 +6,8 @@ import sys
 import time
 
 atable, ltable, dtable = {}, {}, {} #initialize global tables
-address_size = 4
-jump_size = 7
+address_size = fields_table["address"]
+jump_size = fields_table["jump"]
 
 try:
     filename = sys.argv[1]
