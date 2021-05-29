@@ -14,3 +14,9 @@ space_table = {
     "unused" :  32, 
     "data"   :  16
 }
+
+fields_table = {
+    "opcode"  : 4,
+    "address" : 4,
+    "jump"    : 7
+}
