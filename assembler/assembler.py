@@ -5,7 +5,7 @@ from helpers import *
 import sys
 import time
 
-atable, ltable, dtable = {}, {}, {} #initialize global tables
+atable, ltable, dtable, vtable = {}, {}, {}, [] #initialize global tables
 address_size = 4
 jump_size = 7
 
@@ -33,10 +33,11 @@ def prepare_file(filename):
     return a
 
 def translate(a):
+    global vtable
     f = []
     code = 0
     for i in a:
-    	if not is_l_command(i) and not is_d_command(i):
+        if not is_l_command(i) and not is_d_command(i):
             f.append(atable[i])
             code += 1
     if code > space_table["code"]:
@@ -45,8 +46,22 @@ def translate(a):
     elif code < space_table["code"]:
         for i in range(space_table["code"] - code):
             f.append(to_b(0, 8))
+    video = len(vtable)
+    if video > space_table["video"]:
+        print "Warning: video data truncated", video
+        vtable = vtable[0:space_table["video"]] 
+    for i in vtable:
+        if is_hex(i):
+            f.append(to_b(try_parse_int(i, 16),8))
+        else:
+            f.append(to_b(try_parse_int(i),8))
+    if video < space_table["video"]:
+        for i in range(space_table["video"] - video):
+            f.append(to_b(63, 8)) # white fill
+    print "Video:", len(vtable), "/", space_table["video"] 
     for i in range(space_table["unused"]):
         f.append(to_b(255, 8))
+    print "Unused:", space_table["unused"]
     data = [to_b(0, 8) for i in xrange(space_table["data"])]
     for i in dtable:
         data[try_parse_int(dtable[i][0], base=2)] = dtable[i][1]
@@ -62,8 +77,10 @@ def make_ltable(a):
         if is_l_command(i): #find a label, add line number to it
             x -= 1
             ltable[i[0:-1]] = to_b(x, jump_size) #use binary helper with 0's padding
+            print "Label:", i[0:-1], "address", x
 
 def make_dtable(a):
+    global vtable
     space = 0
     for i in a: # add to symbols table
         if is_d_command(i): 
@@ -76,9 +93,13 @@ def make_dtable(a):
                 if var in dtable.keys():
                     print "Error: redefinition of variable '" + var + "'!"
                     sys.exit(7)
+                elif var == "video":
+                    print "Video data declaration"
+                    vtable = val.split(",") 
                 elif try_parse_int(val) is not None:
                     dtable[var] = [to_b(space, address_size), to_b(int(val))]      
                     space += 1
+                    print "Data declaration", var
                 else:
                     dtable[var] = [to_b(space, address_size),  to_b(0)] # unable to parse
                     space += 1
@@ -91,7 +112,11 @@ def make_atable(a):
     for i in a:
         if not is_d_command(i) and not is_l_command(i):
             mnemo = i.split(' ')[0]
-            param = i.split(' ')[1]
+            if mnemo != 'LDV' and mnemo != 'STVI':
+                param = i.split(' ')[1]
+            else:
+                atable[i] = inst_table[mnemo] + "1111"
+                continue
             if mnemo in inst_table.keys():
                 if mnemo[0] == 'J':
                     if param in ltable:
@@ -123,5 +148,3 @@ if __name__ == "__main__":
     main()
     print "Time: ", time.time()-t0, "s"
 
-    
-      
