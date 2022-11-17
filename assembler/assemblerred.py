@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from tables import *
+from tablesred import *
 from helpers import *
 import sys
 import time
